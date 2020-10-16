@@ -5,7 +5,7 @@
 
 After entering docker, 
 ```
-cd /home/hw2
+cd /home
 ```
 
 ### Reference
