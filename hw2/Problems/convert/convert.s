@@ -16,11 +16,11 @@ convert:
     
     addi a6, x0, 10   #10
     addi t5, x0, 0    #loop idx
-    addi a3, x0, 0    #flag of neg
+    addi a3, x0, 1    #flag of neg
     addi a4, x0, 0    #init result
     
     lb t4, 0(a0)
-    bne t4, t0, Neg
+    beq t4, t1, Neg
 
     Loop:
         add a2, a0, t5
@@ -45,10 +45,16 @@ convert:
         beq x0, x0, Exit
 
     Neg:
-        addi a3, x0, 1
+        addi a3, x0, 0
         beq x0, x0, Loop
 
     Final:
+        beq a3, x0, Pfinal
+        add a0, x0, a4
+        beq x0, x0, Exit
+
+    Pfinal:
+        sub a4, x0, a4
         add a0, x0, a4
         beq x0, x0, Exit
 
