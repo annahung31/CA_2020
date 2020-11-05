@@ -17,11 +17,14 @@ module alu #(
 
     // define output behavior, wire and registers
     reg [DATA_WIDTH-1:0] o_data_r, o_data_w;  // o_data_w要當成一條線
+    reg signed [DATA_WIDTH*2-1:0] o_signed_data_w;
     reg                  o_verflow_r, o_overflow_w;
     reg                  o_valid_r, o_valid_w;
+    wire signed [DATA_WIDTH-1:0] signed_data_a, signed_data_b;
+    reg                  o_sign_flag;
+    reg                  o_flow1_flag, o_flow2_flag;
     integer ii;
 
-    // // for signed add ??????
     // reg signed [DATA_WIDTH-1:0] signed_data_a, signed_data_b; //?????
 
 
@@ -29,6 +32,8 @@ module alu #(
     assign o_data = o_data_r;  // o_data 這條線吃 o_data_r 的內容
     assign o_overflow = o_verflow_r;
     assign o_valid = o_valid_r;
+    assign signed_data_a = i_data_a;
+    assign signed_data_b = i_data_b;
  
 
     //combinational
@@ -36,6 +41,59 @@ module alu #(
         if (i_valid) begin    // i_valid 的功能是什麼？ Ａ跟 B 是真的才開始動作。 A 跟 B 是什麼？
             //如果是真的，就開始做運算
             case (i_inst) 
+                4'd0: begin  //add
+                    o_data_w = signed_data_a + signed_data_b;
+                    o_overflow_w = (signed_data_a[DATA_WIDTH-1]^signed_data_b[DATA_WIDTH-1]) ? 0: (o_data_w[DATA_WIDTH-1]^signed_data_a[DATA_WIDTH-1]);
+                    
+                    o_valid_w = 1;                    
+                end
+
+                4'd1: begin //sub
+                    {o_overflow_w, o_data_w} = signed_data_a - signed_data_b; 
+                    o_overflow_w = (signed_data_a[DATA_WIDTH-1] & signed_data_b[DATA_WIDTH-1]) ? 0: (signed_data_a[DATA_WIDTH-1]^o_data_w[DATA_WIDTH-1]);
+                    
+                    o_valid_w = 1;                    
+                end
+
+                4'd2: begin //mul
+                    o_signed_data_w = signed_data_a * signed_data_b; 
+                    o_flow1_flag = !(&(o_signed_data_w[DATA_WIDTH*2-2:DATA_WIDTH-1])); //有沒有 0
+                    o_flow2_flag = |(o_signed_data_w[DATA_WIDTH*2-2:DATA_WIDTH-1]); //有沒有 1
+                    
+                    o_overflow_w = (o_signed_data_w[DATA_WIDTH*2-1] & o_flow1_flag) | 
+                                   ((!o_signed_data_w[DATA_WIDTH*2-1]) & o_flow2_flag); 
+                    // if (o_signed_data_w[DATA_WIDTH*2-1] & o_flow1_flag) 
+                    //     o_overflow_w = 1;
+                    // else if (!o_signed_data_w[DATA_WIDTH*2-1] & o_flow2_flag)
+                    //     o_overflow_w = 1;
+                    // else
+                    //     o_overflow_w = 0;       
+                    o_data_w = o_signed_data_w[DATA_WIDTH-1:0];
+                    o_valid_w = 1;                    
+                end
+
+                4'd3: begin
+                    o_overflow_w = 0;
+                    if (signed_data_a > signed_data_b)
+                        o_data_w = signed_data_a;
+                    else
+                        o_data_w = signed_data_b;
+
+
+                    o_valid_w = 1;               
+                end
+
+                4'd4: begin
+                    o_overflow_w = 0;
+                    if (signed_data_a > signed_data_b)
+                        o_data_w = signed_data_b;
+                    else
+                        o_data_w = signed_data_a;
+                    o_valid_w = 1;               
+                end
+
+
+
                 //unsigned add 怎麼加
                 // Q: 填滿是什麼？
                 //            33 bit                32 bit     32 bit
@@ -52,18 +110,20 @@ module alu #(
                     o_valid_w = 1;
                 end
                 4'd8: begin
+                    o_overflow_w = 0;
                     if (i_data_a > i_data_b)
-                        {o_overflow_w, o_data_w} = i_data_a;
+                        o_data_w = i_data_a;
                     else
-                        {o_overflow_w, o_data_w} = i_data_b;
+                        o_data_w = i_data_b;
                     o_valid_w = 1;
                 end
 
                 4'd9: begin
+                    o_overflow_w = 0;
                     if (i_data_a > i_data_b)
-                        {o_overflow_w, o_data_w} = i_data_b;
+                        o_data_w = i_data_b;
                     else
-                        {o_overflow_w, o_data_w} = i_data_a;
+                        o_data_w = i_data_a;
                     o_valid_w = 1;
                 end
 
