@@ -21,12 +21,12 @@ module fpu #(
     reg [30:23]           o_expo;
     
     wire                  i_sign_a, i_sign_b;
-    wire signed [DATA_WIDTH-1:0] signed_data_a, signed_data_b;
     reg [46:0]            i_frag_aa, i_frag_bb;
     reg [23:0]            i_frag_a1, i_frag_b1;
     reg [46:0]            i_frag_af, i_frag_bf;
-    reg [47:0]            i_frag_o;
+    reg [47:0]            i_frag_o, i_frag_ma, i_frag_mb;
     reg [22:0]            i_frag_oo;
+
 
     
 
@@ -34,14 +34,14 @@ module fpu #(
     // 把 register 的訊號送到 o_data
     assign o_data = o_data_r;  // o_data 這條線吃 o_data_r 的內容
     assign o_valid = o_valid_r;
-    assign signed_data_a = i_data_a;
-    assign signed_data_b = i_data_b;
-    assign i_expo_a = signed_data_a[30:23];
-    assign i_expo_b = signed_data_b[30:23];
-    assign i_frag_a = signed_data_a[22:0];
-    assign i_frag_b = signed_data_b[22:0];
-    assign i_sign_a = signed_data_a[DATA_WIDTH-1];
-    assign i_sign_b = signed_data_b[DATA_WIDTH-1];
+
+    assign i_expo_a = i_data_a[30:23];
+    assign i_expo_b = i_data_b[30:23];
+    assign i_frag_a = i_data_a[22:0];
+    assign i_frag_b = i_data_b[22:0];
+    assign i_sign_a = i_data_a[DATA_WIDTH-1];
+    assign i_sign_b = i_data_b[DATA_WIDTH-1];
+
 
 
 
@@ -181,12 +181,38 @@ module fpu #(
 
 
                 1'd1: begin
-                    o_data_w[30:23] = i_expo_a + i_expo_b;
+                    o_data_w[30:23] = i_expo_a + i_expo_b - 127;
                     o_data_w[DATA_WIDTH-1] = i_sign_a ^ i_sign_b;
-                    o_data_w[22:0] = i_frag_a * i_frag_b;
+
+                    i_frag_ma[47:24] = 24'd0;
+                    i_frag_ma[23] = 1;
+                    i_frag_ma[22:0] = i_frag_a;
+                    i_frag_mb[47:24] = 24'd0;
+                    i_frag_mb[23] = 1;
+                    i_frag_mb[22:0] = i_frag_b;
+
+                    i_frag_o = i_frag_ma * i_frag_mb;
+
+                    // rounding
+                    //case 1: G == 1 and R == 1
+                    if (i_frag_o[22] && i_frag_o[21]) begin
+                        i_frag_o[47:23] = i_frag_o[47:23] + 1;
+                    end
+                    //case 2: G == 1 and R == 0 -> check if S == 0
+                    else if (i_frag_o[22] && ~i_frag_o[21]) begin 
+                        i_frag_o[20] = |i_frag_o[20:0]? 1 : 0; //check all bits after S
+                        if (i_frag_o[20] == 1)
+                            i_frag_o[47:23] = i_frag_o[47:23] + 1;
+                        else if (i_frag_o[23] == 1)
+                            i_frag_o[47:23] = i_frag_o[47:23] + 1;
+                            
+                    end
+                    
+
+                    o_data_w[22:0] = i_frag_o[45:23];
+
                     o_valid_w = 1;    
                 end
-
 
                 default: begin
                     o_data_w     = 0;
