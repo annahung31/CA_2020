@@ -181,7 +181,7 @@ module fpu #(
 
 
                 1'd1: begin
-                    o_data_w[30:23] = i_expo_a + i_expo_b - 127;
+                    o_expo = i_expo_a + i_expo_b - 127;
                     o_data_w[DATA_WIDTH-1] = i_sign_a ^ i_sign_b;
 
                     i_frag_ma[47:24] = 24'd0;
@@ -208,9 +208,33 @@ module fpu #(
                             
                     end
                     
+                    // check normalize again
+                    if (i_frag_o[47] || ~i_frag_o[46]) begin
+                        if (i_frag_o[47]) begin
+                            i_frag_o = i_frag_o >> 1;
+                            o_expo = o_expo + 1;   
+                        end  
+
+                        // rounding
+                        //case 1: G == 1 and R == 1
+                        if (i_frag_o[22] && i_frag_o[21]) begin
+                            i_frag_o[47:23] = i_frag_o[47:23] + 1;
+                        end
+                        //case 2: G == 1 and R == 0 -> check if S == 0
+                        else if (i_frag_o[22] && ~i_frag_o[21]) begin 
+                            i_frag_o[20] = |i_frag_o[20:0]? 1 : 0; //check all bits after S
+                            if (i_frag_o[20] == 1)
+                                i_frag_o[47:23] = i_frag_o[47:23] + 1;
+                            else if (i_frag_o[23] == 1)
+                                i_frag_o[47:23] = i_frag_o[47:23] + 1;
+                                
+                        end
+              
+                    end
+
 
                     o_data_w[22:0] = i_frag_o[45:23];
-
+                    o_data_w[30:23] = o_expo;
                     o_valid_w = 1;    
                 end
 
