@@ -227,7 +227,7 @@ module cpu #( // Do not modify interface
 
 
             // XORI
-            else if (i_inst_temp[6:0] == 0010011 
+            else if (i_inst_temp[6:0] == 7'b0010011 
                   && i_inst_temp[14:12] == 3'b100) begin
                 rd = i_inst_temp[11:7];
                 rs1 = i_inst_temp[19:15];
@@ -236,8 +236,8 @@ module cpu #( // Do not modify interface
             end
             
             // ORI
-            else if (i_inst_temp[6:0] == 0010011 
-                  && i_inst_temp[14:12] == 3'b100) begin
+            else if (i_inst_temp[6:0] == 7'b0010011 
+                  && i_inst_temp[14:12] == 3'b110) begin
                 rd = i_inst_temp[11:7];
                 rs1 = i_inst_temp[19:15];
                 imm[11:0] = i_inst_temp[31:20];
@@ -246,8 +246,8 @@ module cpu #( // Do not modify interface
 
 
             // ANDI
-            else if (i_inst_temp[6:0] == 0010011 
-                  && i_inst_temp[14:12] == 3'b100) begin
+            else if (i_inst_temp[6:0] == 7'b0010011 
+                  && i_inst_temp[14:12] == 3'b111) begin
                 rd = i_inst_temp[11:7];
                 rs1 = i_inst_temp[19:15];
                 imm[11:0] = i_inst_temp[31:20];
@@ -257,23 +257,17 @@ module cpu #( // Do not modify interface
 
             // SLLI
             else if (i_inst_temp[6:0] == 7'b0010011 
-                  && i_inst_temp[31:25] == 7'b0000000
                   && i_inst_temp[14:12] == 3'b001) begin
-                rd = i_inst_temp[11:7];
-                rs1 = i_inst_temp[19:15];
-                rs2 = i_inst_temp[24:20];  // shamt
-                reg_file_w[rd] = reg_file[rs1] << reg_file[rs2];
+
+                reg_file_w[i_inst_temp[11:7]] = reg_file[i_inst_temp[19:15]] << i_inst_temp[24:20];
 
             end
 
             // SRLI
             else if (i_inst_temp[6:0] == 7'b0010011 
-                  && i_inst_temp[31:25] == 7'b0000000
                   && i_inst_temp[14:12] == 3'b101) begin
-                rd = i_inst_temp[11:7];
-                rs1 = i_inst_temp[19:15];
-                rs2 = i_inst_temp[24:20];  // shamt
-                reg_file_w[rd] = reg_file[rs1] >> reg_file[rs2];
+                reg_file_w[i_inst_temp[11:7]] = reg_file[i_inst_temp[19:15]] >> i_inst_temp[24:20];
+
             end
 
 
